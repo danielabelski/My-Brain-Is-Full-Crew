@@ -16,7 +16,7 @@ import os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AGENTS_DIR = os.path.join(ROOT, "agents")
-SKILLS_DIR = os.path.join(ROOT, "skills")
+SKILLS_DIR = os.environ.get("SKILLS_DIR", os.path.join(ROOT, "skills"))
 
 
 def parse_agent(path: str):

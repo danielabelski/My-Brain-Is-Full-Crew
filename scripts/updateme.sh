@@ -77,23 +77,28 @@ done
 # ── Regenerate and update skills ───────────────────────────────────────────
 SKILL_COUNT=0
 if command -v python3 >/dev/null 2>&1 && [[ -f "$REPO_DIR/scripts/generate-skills.py" ]]; then
-  python3 "$REPO_DIR/scripts/generate-skills.py" >/dev/null 2>&1
-fi
+  SKILLS_TMP="$(mktemp -d)"
+  SKILLS_DIR="$SKILLS_TMP" python3 "$REPO_DIR/scripts/generate-skills.py" >/dev/null 2>&1 || true
 
-if [[ -d "$REPO_DIR/skills" ]]; then
-  for skill_dir in "$REPO_DIR/skills/"*/; do
-    skill_name="$(basename "$skill_dir")"
-    src="$skill_dir/SKILL.md"
-    dst="$VAULT_DIR/.claude/skills/$skill_name/SKILL.md"
-    if [[ -f "$src" ]]; then
-      if [[ ! -f "$dst" ]] || ! diff -q "$src" "$dst" >/dev/null 2>&1; then
-        mkdir -p "$VAULT_DIR/.claude/skills/$skill_name"
-        cp "$src" "$dst"
-        info "Updated skill: $skill_name"
-        SKILL_COUNT=$((SKILL_COUNT + 1))
+  if [[ -d "$SKILLS_TMP" ]] && ls "$SKILLS_TMP"/*/SKILL.md >/dev/null 2>&1; then
+    for skill_dir in "$SKILLS_TMP/"*/; do
+      skill_name="$(basename "$skill_dir")"
+      src="$skill_dir/SKILL.md"
+      dst="$VAULT_DIR/.claude/skills/$skill_name/SKILL.md"
+      if [[ -f "$src" ]]; then
+        if [[ ! -f "$dst" ]] || ! diff -q "$src" "$dst" >/dev/null 2>&1; then
+          mkdir -p "$VAULT_DIR/.claude/skills/$skill_name"
+          cp "$src" "$dst"
+          info "Updated skill: $skill_name"
+          SKILL_COUNT=$((SKILL_COUNT + 1))
+        fi
       fi
-    fi
-  done
+    done
+  fi
+
+  rm -rf "$SKILLS_TMP"
+else
+  warn "python3 not found — skipped skills update"
 fi
 
 # ── Update CLAUDE.md ──────────────────────────────────────────────────────

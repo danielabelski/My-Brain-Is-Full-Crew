@@ -82,18 +82,24 @@ success "Copied references"
 SKILL_COUNT=0
 if command -v python3 >/dev/null 2>&1 && [[ -f "$REPO_DIR/scripts/generate-skills.py" ]]; then
   info "Generating skills from agents..."
-  python3 "$REPO_DIR/scripts/generate-skills.py" >/dev/null 2>&1
-fi
+  SKILLS_TMP="$(mktemp -d)"
+  SKILLS_DIR="$SKILLS_TMP" python3 "$REPO_DIR/scripts/generate-skills.py" >/dev/null 2>&1 || true
 
-if [[ -d "$REPO_DIR/skills" ]]; then
-  info "Creating .claude/skills/ in vault..."
-  for skill_dir in "$REPO_DIR/skills/"*/; do
-    skill_name="$(basename "$skill_dir")"
-    mkdir -p "$VAULT_DIR/.claude/skills/$skill_name"
-    cp "$skill_dir"* "$VAULT_DIR/.claude/skills/$skill_name/" 2>/dev/null || true
-    SKILL_COUNT=$((SKILL_COUNT + 1))
-  done
-  success "Copied $SKILL_COUNT skills"
+  if [[ -d "$SKILLS_TMP" ]] && ls "$SKILLS_TMP"/*/SKILL.md >/dev/null 2>&1; then
+    info "Creating .claude/skills/ in vault..."
+    for skill_dir in "$SKILLS_TMP/"*/; do
+      skill_name="$(basename "$skill_dir")"
+      mkdir -p "$VAULT_DIR/.claude/skills/$skill_name"
+      cp "$skill_dir"* "$VAULT_DIR/.claude/skills/$skill_name/" 2>/dev/null || true
+      SKILL_COUNT=$((SKILL_COUNT + 1))
+    done
+    success "Copied $SKILL_COUNT skills"
+  fi
+
+  rm -rf "$SKILLS_TMP"
+else
+  warn "python3 not found — skipped skills generation (Cowork/Desktop won't have skills)"
+  warn "Install Python 3 and re-run this script to enable Cowork/Desktop support"
 fi
 
 # ── Copy CLAUDE.md ───────────────────────────────────────────────────────────
